@@ -148,7 +148,7 @@ npm run dev
 ## 6. Testing & Verification
 
 ### Automated Integration Test Suite
-The project includes a 19-assertion automated end-to-end integration test validating:
+The project includes a 20-assertion automated end-to-end integration test validating:
 - Server health check & room creation
 - Room code formatting & host assignment
 - Multi-client join & Socket.IO handshakes
@@ -209,5 +209,5 @@ For a traditional long-running Node host such as Render or Railway, use `npm ins
 5. Set environment variables:
    - `VITE_BACKEND_URL`: `https://watch-party-b95g.vercel.app`
    - `VITE_SOCKET_URL`: `https://watch-party-b95g.vercel.app`
-6. Rebuild and redeploy after changing either Vite variable. The app handles `/room/*` routes through its client-side router.
+6. `client/vercel.json` rewrites direct `/room/*` invite links to the Vite app. Rebuild and redeploy after changing either Vite variable.
 
