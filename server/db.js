@@ -11,6 +11,20 @@ if (!MONGODB_URI) {
 
 let isConnected = false;
 
+mongoose.connection.on("disconnected", () => {
+  isConnected = false;
+  console.warn("[MongoDB] Connection lost; the driver will attempt to reconnect.");
+});
+
+mongoose.connection.on("reconnected", () => {
+  isConnected = true;
+  console.log("[MongoDB] Connection restored.");
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("[MongoDB] Connection error:", err.message);
+});
+
 export async function connectDB() {
   if (isConnected) return;
 
@@ -21,8 +35,8 @@ export async function connectDB() {
     isConnected = true;
     console.log("[MongoDB] Connected to Atlas successfully.");
   } catch (err) {
-    console.error("[MongoDB] Connection failed:", err.message);
-    process.exit(1);
+    console.error("[MongoDB] Initial connection failed:", err.message);
+    throw err;
   }
 }
 

@@ -294,6 +294,26 @@ app.get("/api/rooms/:roomId", async (req, res) => {
 io.on("connection", (socket) => {
   console.log(`[Socket Connected] Socket ID: ${socket.id}`);
 
+  // Socket.IO does not handle rejected promises returned by async listeners.
+  // A transient MongoDB/network failure in any handler would otherwise crash Node.
+  const originalOn = socket.on.bind(socket);
+  socket.on = (eventName, listener, ...args) => {
+    if (listener?.constructor?.name === "AsyncFunction") {
+      const asyncListener = listener;
+      listener = (...listenerArgs) => {
+        Promise.resolve()
+          .then(() => asyncListener(...listenerArgs))
+          .catch((err) => {
+            console.error(`[Socket ${eventName}] ${err?.stack || err}`);
+            if (eventName !== "disconnect" && socket.connected) {
+              socket.emit("room_error", "A temporary server or database error occurred. Please try again.");
+            }
+          });
+      };
+    }
+    return originalOn(eventName, listener, ...args);
+  };
+
   // 1. JOIN ROOM
   socket.on("join_room", async ({ roomId, participantId, username }) => {
     roomId = roomId?.toLowerCase().trim();
@@ -899,13 +919,17 @@ io.on("connection", (socket) => {
     await room.save();
 
     // Grace period for reconnection (tab reload, network blip)
-    setTimeout(async () => {
+    setTimeout(() => {
+      (async () => {
       const currentRoom = await Room.findOne({ roomId });
       if (!currentRoom) return;
       const p = currentRoom.participants.find((x) => x.id === participantId);
       if (p && !p.connected) {
         await removeParticipantFromRoom(currentRoom, participantId, "disconnected");
       }
+      })().catch((err) => {
+        console.error(`[Disconnect cleanup] ${err?.stack || err}`);
+      });
     }, 20000);
   });
 });
@@ -933,4 +957,7 @@ async function start() {
   });
 }
 
-start();
+start().catch((err) => {
+  console.error("[Startup] Server could not start:", err?.stack || err);
+  process.exitCode = 1;
+});
