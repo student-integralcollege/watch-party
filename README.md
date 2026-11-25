@@ -187,7 +187,7 @@ npm test
 
 ## 8. Deployment Guide
 
-### Deploy Backend (e.g. Render / Railway / Fly.io)
+### Deploy Backend (e.g. Render / Railway / Fly.io / Vercel)
 1. Push codebase to GitHub.
 2. In your cloud provider, create a new Web Service pointing to the repository.
 3. Set **Root Directory** to `server`.
@@ -195,7 +195,7 @@ npm test
 5. Start command: `node server.js`
 6. Set environment variables:
    - `PORT`: (provided automatically by provider or default 5000)
-   - `CLIENT_ORIGIN`: `https://your-frontend-domain.vercel.app`
+   - `CLIENT_ORIGIN`: `https://watch-party-nine-pied.vercel.app`
 
 ### Deploy Frontend (e.g. Vercel / Netlify)
 1. Create a new project in Vercel or Netlify.
@@ -203,7 +203,7 @@ npm test
 3. Build command: `npm run build`
 4. Output directory: `dist`
 5. Set environment variables:
-   - `VITE_BACKEND_URL`: `https://your-backend-api.onrender.com`
-   - `VITE_SOCKET_URL`: `https://your-backend-api.onrender.com`
+   - `VITE_BACKEND_URL`: `https://watch-party-b95g.vercel.app`
+   - `VITE_SOCKET_URL`: `https://watch-party-b95g.vercel.app`
 6. For single-page app rewrites on Netlify/Vercel, route all `/room/*` requests to `/index.html`.
 
