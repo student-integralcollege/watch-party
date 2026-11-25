@@ -2,6 +2,8 @@
 
 A modern, full-stack real-time collaborative video watching web application where friends can gather in virtual rooms, watch YouTube videos in synchronized lockstep, manage roles, approve playback requests, and chat live.
 
+**Live application:** https://watch-party-nine-pied.vercel.app/
+
 ---
 
 ## 1. System Architecture & Data Flow
@@ -131,8 +133,9 @@ npm run dev
 ### Backend (`server/.env`)
 | Variable | Default | Description |
 |---|---|---|
+| `MONGODB_URI` | (required) | MongoDB connection string for room data |
 | `PORT` | `5000` | Port for the Express and Socket.IO server |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | Allowed frontend origin for CORS |
+| `CLIENT_ORIGIN` | Local Vite origins | Comma-separated frontend origins allowed by HTTP and Socket.IO CORS |
 
 ### Frontend (`client/.env`)
 | Variable | Default | Description |
@@ -179,25 +182,26 @@ npm test
 
 ## 7. MVP Limitations & Production Considerations
 
-- **In-Memory Storage:** Rooms exist in memory on the active Node process. Restarting the server resets active rooms. In production, room state can be backed by Redis or PostgreSQL.
+- **Room Storage:** Room documents are stored in MongoDB and empty rooms expire after 24 hours. Live room broadcasts are handled by Socket.IO instances.
 - **Participant Identity:** Identity is tracked via unique participant IDs generated upon room joining and saved in session storage. For production with persistent accounts, OAuth / JWT auth can replace session tokens.
-- **Horizontal Scaling:** When scaling to multiple server instances, Socket.IO Redis Adapter should be introduced so socket rooms can span across server instances.
+- **Horizontal Scaling:** Socket.IO broadcasts are local to the Function instance. For reliable room broadcasts across multiple instances, add a shared Socket.IO adapter/pub-sub service and shared presence coordination.
 
 ---
 
 ## 8. Deployment Guide
 
-### Deploy Backend (e.g. Render / Railway / Fly.io / Vercel)
-1. Push codebase to GitHub.
-2. In your cloud provider, create a new Web Service pointing to the repository.
-3. Set **Root Directory** to `server`.
-4. Build command: `npm install`
-5. Start command: `node server.js`
-6. Set environment variables:
-   - `PORT`: (provided automatically by provider or default 5000)
+### Deploy Backend to Vercel
+1. Create or open the Vercel project connected to this repository.
+2. Set **Root Directory** to `server` and select the Express framework preset (or let Vercel detect it).
+3. Leave the Vercel build and output settings at their detected defaults; Vercel imports `server/index.js` as the Function entrypoint. Do not set a `node server.js` start command on Vercel.
+4. Add these environment variables to each Vercel environment you deploy:
+   - `MONGODB_URI`: your MongoDB connection string
    - `CLIENT_ORIGIN`: `https://watch-party-nine-pied.vercel.app`
+5. Redeploy after changing environment variables.
 
-### Deploy Frontend (e.g. Vercel / Netlify)
+For a traditional long-running Node host such as Render or Railway, use `npm install` and `npm start` from the `server` directory instead.
+
+### Deploy Frontend to Vercel (or Netlify)
 1. Create a new project in Vercel or Netlify.
 2. Set **Root Directory** to `client`.
 3. Build command: `npm run build`
@@ -205,5 +209,5 @@ npm test
 5. Set environment variables:
    - `VITE_BACKEND_URL`: `https://watch-party-b95g.vercel.app`
    - `VITE_SOCKET_URL`: `https://watch-party-b95g.vercel.app`
-6. For single-page app rewrites on Netlify/Vercel, route all `/room/*` requests to `/index.html`.
+6. Rebuild and redeploy after changing either Vite variable. The app handles `/room/*` routes through its client-side router.
 

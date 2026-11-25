@@ -3,6 +3,7 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { randomUUID } from "crypto";
+import { pathToFileURL } from "url";
 import "dotenv/config";
 
 import { connectDB } from "./db.js";
@@ -25,18 +26,33 @@ const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Dev-friendly fallback
+      return callback(new Error("Origin is not allowed by CORS"));
     },
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
+
+// Reuse the MongoDB connection in warm Vercel Function instances and connect
+// before serving either an API request or a Socket.IO session.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+io.use((socket, next) => {
+  connectDB().then(() => next()).catch(next);
+});
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -957,7 +973,13 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  console.error("[Startup] Server could not start:", err?.stack || err);
-  process.exitCode = 1;
-});
+// Vercel imports the server as a Function and manages its lifecycle. Only
+// start listening directly when this file is run with `npm start` locally.
+export default httpServer;
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  start().catch((err) => {
+    console.error("[Startup] Server could not start:", err?.stack || err);
+    process.exitCode = 1;
+  });
+}
